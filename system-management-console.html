@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Management Console</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000000;
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #000000;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 2px solid #333333;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #cccccc;
+            opacity: 0.8;
+        }
+
+        .nav-breadcrumb {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            font-size: 12px;
+            color: #cccccc;
+        }
+
+        .nav-breadcrumb a {
+            color: #00ff00;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .nav-breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: #0a0a0a;
+            border: 1px solid #222222;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel:hover {
+            transform: translateY(-2px);
+            border-color: #333333;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ffffff, #cccccc, #ffffff);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Consolas', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .panel-title.status-ok { color: #00ff00; }
+        .panel-title.status-warning { color: #ffff00; }
+        .panel-title.status-error { color: #ff0000; }
+        .panel-title.status-normal { color: #ffffff; }
+
+        .panel-icon {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #ffffff, #cccccc);
+            border-radius: 2px;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            border-left: 3px solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-family: 'Consolas', monospace;
+        }
+
+        .service-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
+        }
+
+        .service-item.status-running {
+            border-left-color: #00ff00;
+        }
+
+        .service-item.status-warning {
+            border-left-color: #ffff00;
+        }
+
+        .service-item.status-error {
+            border-left-color: #ff0000;
+        }
+
+        .service-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .service-name.status-running { color: #00ff00; }
+        .service-name.status-warning { color: #ffff00; }
+        .service-name.status-error { color: #ff0000; }
+
+        .service-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px solid;
+        }
+
+        .service-status.running {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        .service-status.warning {
+            background: rgba(255, 255, 0, 0.1);
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        .service-status.error {
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: 'Consolas', monospace;
+        }
+
+        .metric-label {
+            color: #cccccc;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .metric-value.ok { color: #00ff00; }
+        .metric-value.warning { color: #ffff00; }
+        .metric-value.error { color: #ff0000; }
+        .metric-value.normal { color: #ffffff; }
+
+        .command-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .command-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid #00ff00;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-family: 'Consolas', monospace;
+        }
+
+        .command-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .command-name {
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .terminal-section {
+            background: #000000;
+            border: 1px solid #333333;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 12px;
+            line-height: 1.4;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .terminal-line {
+            margin-bottom: 4px;
+            color: #ffffff;
+        }
+
+        .terminal-prompt {
+            color: #00ff00;
+        }
+
+        .terminal-output {
+            color: #cccccc;
+            margin-left: 20px;
+        }
+
+        .process-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .process-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .process-name {
+            color: #00ff00;
+            font-weight: 600;
+        }
+
+        .process-info {
+            color: #cccccc;
+            font-size: 11px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn.warning {
+            background: rgba(255, 255, 0, 0.1);
+            border-color: #ffff00;
+            color: #ffff00;
+        }
+
+        .btn.warning:hover {
+            background: rgba(255, 255, 0, 0.2);
+        }
+
+        .btn.danger {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .btn.danger:hover {
+            background: rgba(255, 0, 0, 0.2);
+        }
+
+        .directory-nav {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .directory-nav h3 {
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .directory-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            color: #cccccc;
+        }
+
+        .directory-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+
+        .directory-item.folder::before {
+            content: "📁 ";
+            margin-right: 8px;
+        }
+
+        .directory-item.file::before {
+            content: "📄 ";
+            margin-right: 8px;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 35px;
+            background: #000000;
+            border-top: 1px solid #333333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-size: 12px;
+            color: #cccccc;
+            z-index: 1000;
+        }
+
+        .status-left {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.online { background: #00ff00; }
+        .status-dot.warning { background: #ffff00; }
+        .status-dot.error { background: #ff0000; }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .service-detail {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000000;
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .service-detail.active {
+            display: block;
+        }
+
+        .back-button {
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #333333;
+            color: #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="main-view">
+        <div class="header">
+            <h1>System Management Console</h1>
+            <div class="subtitle">Comprehensive System Administration & Monitoring Interface</div>
+        </div>
+
+        <div class="nav-breadcrumb">
+            <span>Home</span> / <span>System Overview</span>
+        </div>
+
+        <div class="main-grid">
+            <!-- System Services Panel -->
+            <div class="panel">
+                <div class="panel-title status-ok">
+                    <div class="panel-icon"></div>
+                    System Services
+                </div>
+                <div class="service-item status-running" onclick="openServiceDetail('apache')">
+                    <span class="service-name status-running">Apache Web Server</span>
+                    <span class="service-status running">Running</span>
+                </div>
+                <div class="service-item status-running" onclick="openServiceDetail('mysql')">
+                    <span class="service-name status-running">MySQL Database</span>
+                    <span class="service-status running">Running</span>
+                </div>
+                <div class="service-item status-warning" onclick="openServiceDetail('ssl')">
+                    <span class="service-name status-warning">SSL Certificate Service</span>
+                    <span class="service-status warning">Warning</span>
+                </div>
+                <div class="service-item status-running" onclick="openServiceDetail('ssh')">
+                    <span class="service-name status-running">SSH Server</span>
+                    <span class="service-status running">Running</span>
+                </div>
+                <div class="service-item status-error" onclick="openServiceDetail('backup')">
+                    <span class="service-name status-error">Backup Service</span>
+                    <span class="service-status error">Error</span>
+                </div>
+                <div class="service-item status-running" onclick="openServiceDetail('firewall')">
+                    <span class="service-name status-running">Firewall</span>
+                    <span class="service-status running">Running</span>
+                </div>
+            </div>
+
+            <!-- System Information Panel -->
+            <div class="panel">
+                <div class="panel-title status-warning">
+                    <div class="panel-icon"></div>
+                    System Information
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Hostname</span>
+                    <span class="metric-value normal">SYS-ADMIN-01</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">OS Version</span>
+                    <span class="metric-value normal">Ubuntu 22.04.3 LTS</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Kernel</span>
+                    <span class="metric-value normal">5.15.0-78-generic</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value ok" id="uptime">5d 12h 47m</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Load Average</span>
+                    <span class="metric-value warning">1.23, 1.45, 1.67</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Disk Usage</span>
+                    <span class="metric-value warning">78% (145GB/185GB)</span>
+                </div>
+            </div>
+
+            <!-- Process Management Panel -->
+            <div class="panel">
+                <div class="panel-title status-ok">
+                    <div class="panel-icon"></div>
+                    Process Management
+                </div>
+                <div class="process-item" onclick="openProcessDetail('apache2')">
+                    <span class="process-name">apache2</span>
+                    <span class="process-info">PID: 1234 | CPU: 2.3% | MEM: 45MB</span>
+                </div>
+                <div class="process-item" onclick="openProcessDetail('mysqld')">
+                    <span class="process-name">mysqld</span>
+                    <span class="process-info">PID: 5678 | CPU: 5.7% | MEM: 128MB</span>
+                </div>
+                <div class="process-item" onclick="openProcessDetail('sshd')">
+                    <span class="process-name">sshd</span>
+                    <span class="process-info">PID: 9012 | CPU: 0.1% | MEM: 8MB</span>
+                </div>
+                <div class="process-item" onclick="openProcessDetail('nginx')">
+                    <span class="process-name">nginx</span>
+                    <span class="process-info">PID: 3456 | CPU: 1.2% | MEM: 32MB</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn" onclick="refreshProcesses()">Refresh</button>
+                    <button class="btn warning" onclick="killProcess()">Kill Process</button>
+                    <button class="btn" onclick="showAllProcesses()">Show All</button>
+                </div>
+            </div>
+
+            <!-- System Commands Panel -->
+            <div class="panel">
+                <div class="panel-title status-ok">
+                    <div class="panel-icon"></div>
+                    Quick Commands
+                </div>
+                <div class="command-grid">
+                    <div class="command-item" onclick="executeCommand('htop')">
+                        <span class="command-name">System Monitor</span>
+                    </div>
+                    <div class="command-item" onclick="executeCommand('df -h')">
+                        <span class="command-name">Disk Usage</span>
+                    </div>
+                    <div class="command-item" onclick="executeCommand('netstat -tulpn')">
+                        <span class="command-name">Network Connections</span>
+                    </div>
+                    <div class="command-item" onclick="executeCommand('systemctl status')">
+                        <span class="command-name">Service Status</span>
+                    </div>
+                    <div class="command-item" onclick="executeCommand('tail -f /var/log/syslog')">
+                        <span class="command-name">System Logs</span>
+                    </div>
+                    <div class="command-item" onclick="executeCommand('free -h')">
+                        <span class="command-name">Memory Usage</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File System Navigation Panel -->
+            <div class="panel">
+                <div class="panel-title status-ok">
+                    <div class="panel-icon"></div>
+                    File System
+                </div>
+                <div class="directory-nav">
+                    <h3>Current Directory: /var/log</h3>
+                    <div class="directory-item folder" onclick="navigateToDirectory('/var')">..</div>
+                    <div class="directory-item file" onclick="openFile('syslog')">syslog</div>
+                    <div class="directory-item file" onclick="openFile('auth.log')">auth.log</div>
+                    <div class="directory-item file" onclick="openFile('error.log')">error.log</div>
+                    <div class="directory-item folder" onclick="navigateToDirectory('/var/log/apache2')">apache2</div>
+                    <div class="directory-item folder" onclick="navigateToDirectory('/var/log/mysql')">mysql</div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn" onclick="refreshDirectory()">Refresh</button>
+                    <button class="btn" onclick="createFile()">New File</button>
+                    <button class="btn" onclick="createDirectory()">New Directory</button>
+                </div>
+            </div>
+
+            <!-- Terminal Panel -->
+            <div class="panel">
+                <div class="panel-title status-ok">
+                    <div class="panel-icon"></div>
+                    Terminal Output
+                </div>
+                <div class="terminal-section" id="terminal">
+                    <div class="terminal-line">
+                        <span class="terminal-prompt">admin@sys-admin-01:~$</span> systemctl status apache2
+                    </div>
+                    <div class="terminal-line terminal-output">● apache2.service - The Apache HTTP Server</div>
+                    <div class="terminal-line terminal-output">   Loaded: loaded (/lib/systemd/system/apache2.service; enabled)</div>
+                    <div class="terminal-line terminal-output">   Active: active (running) since Mon 2025-06-22 14:47:23 UTC</div>
+                    <div class="terminal-line terminal-output">   Process: 1234 ExecStart=/usr/sbin/apache2 -D FOREGROUND</div>
+                    <div class="terminal-line">
+                        <span class="terminal-prompt">admin@sys-admin-01:~$</span> ps aux | grep mysql
+                    </div>
+                    <div class="terminal-line terminal-output">mysql    5678  0.0  2.1 1234567 123456 ?  Ssl  14:47  0:00 /usr/sbin/mysqld</div>
+                    <div class="terminal-line">
+                        <span class="terminal-prompt">admin@sys-admin-01:~$</span> <span class="terminal-cursor">_</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Detail Views -->
+    <div class="service-detail" id="service-detail">
+        <button class="back-button" onclick="closeServiceDetail()">← Back to Dashboard</button>
+        <div id="service-detail-content"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-left">
+            <div class="status-indicator">
+                <div class="status-dot online"></div>
+                <span>System Online</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot warning"></div>
+                <span>2 Warnings</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot error"></div>
+                <span>1 Error</span>
+            </div>
+        </div>
+        <div class="status-right">
+            <span>Load: 1.23</span>
+            <span>Memory: 78%</span>
+            <span>Disk: 78%</span>
+            <span id="current-time">14:47:23</span>
+        </div>
+    </div>
+
+    <script>
+        // Update system time
+        function updateTime() {
+            const now = new Date();
+            const timeOptions = { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false 
+            };
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', timeOptions);
+        }
+
+        // Update uptime
+        function updateUptime() {
+            const startTime = new Date('2025-06-17T02:15:23');
+            const now = new Date();
+            const diff = now - startTime;
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            document.getElementById('uptime').textContent = `${days}d ${hours}h ${minutes}m`;
+        }
+
+        // Service detail templates
+        const serviceDetails = {
+            apache: {
+                title: 'Apache Web Server',
+                status: 'running',
+                content: `
+                    <div class="panel">
+                        <div class="panel-title status-ok">Apache Web Server Details</div>
+                        <div class="metric-row">
+                            <span class="metric-label">Status</span>
+                            <span class="metric-value ok">Active (Running)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">PID</span>
+                            <span class="metric-value normal">1234</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Port</span>
+                            <span class="metric-value normal">80, 443</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Active Connections</span>
+                            <span class="metric-value normal">47</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn" onclick="controlService('apache', 'restart')">Restart</button>
+                            <button class="btn warning" onclick="controlService('apache', 'stop')">Stop</button>
+                            <button class="btn" onclick="controlService('apache', 'reload')">Reload Config</button>
+                        </div>
+                    </div>
+                `
+            },
+            mysql: {
+                title: 'MySQL Database',
+                status: 'running',
+                content: `
+                    <div class="panel">
+                        <div class="panel-title status-ok">MySQL Database Details</div>
+                        <div class="metric-row">
+                            <span class="metric-label">Status</span>
+                            <span class="metric-value ok">Active (Running)</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Version</span>
+                            <span class="metric-value normal">8.0.34</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Active Connections</span>
+                            <span class="metric-value normal">12</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Database Size</span>
+                            <span class="metric-value normal">2.3 GB</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn" onclick="controlService('mysql', 'restart')">Restart</button>
+                            <button class="btn warning" onclick="controlService('mysql', 'stop')">Stop</button>
+                            <button class="btn" onclick="showDatabases()">Show Databases</button>
+                        </div>
+                    </div>
+                `
+            },
+            ssl: {
+                title: 'SSL Certificate Service',
+                status: 'warning',
+                content: `
+                    <div class="panel">
+                        <div class="panel-title status-warning">SSL Certificate Service Details</div>
+                        <div class="metric-row">
+                            <span class="metric-label">Status</span>
+                            <span class="metric-value warning">Warning - Certificate Expiring</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Certificate Expiry</span>
+                            <span class="metric-value warning">7 days remaining</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Domain</span>
+                            <span class="metric-value normal">example.com</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Issuer</span>
+                            <span class="metric-value normal">Let's Encrypt</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn" onclick="renewCertificate()">Renew Certificate</button>
+                            <button class="btn" onclick="checkCertificate()">Check Certificate</button>
+                            <button class="btn warning" onclick="backupCertificate()">Backup Certificate</button>
+                        </div>
+                    </div>
+                `
+            },
+            backup: {
+                title: 'Backup Service',
+                status: 'error',
+                content: `
+                    <div class="panel">
+                        <div class="panel-title status-error">Backup Service Details</div>
+                        <div class="metric-row">
+                            <span class="metric-label">Status</span>
+                            <span class="metric-value error">Failed - Disk Space Issue</span>
+                        </div>
