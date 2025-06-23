@@ -1,2 +1,2 @@
 # webapp-project
-A customizable webapp with adherence to industry standards in cybersecurity and web development. 
+A customized web application with adherence to industry standards in cybersecurity and web development. 
